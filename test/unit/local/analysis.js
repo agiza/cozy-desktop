@@ -484,6 +484,45 @@ describe('core/local/analysis', () => {
     })
   })
 
+  describe('unlinkDir(src/) + addDir (dst/) + unlink(src/file) + add(dst/file, new md5sum)', () => {
+    it('is a DirMove(src/ → dst/) + FileUpdate(dst/file) with stopped client', () => {
+      const dirIno = 1
+      const fileIno = 2
+      const srcDir /*: Metadata */ = metadataBuilders.dir().path('src').ino(dirIno).build()
+      const srcFile /*: Metadata */ = metadataBuilders.file().path('src/file').ino(fileIno).data('Initial content').build()
+      const newMd5sum = metadataBuilders.file().data('New content').build().md5sum
+      const events /*: LocalEvent[] */ = [
+        {type: 'unlinkDir', path: 'src', old: srcDir},
+        {type: 'addDir', path: 'dst', stats: {ino: dirIno}},
+        {type: 'unlink', path: 'src/file', old: srcFile},
+        {type: 'add', path: 'dst/file', stats: {ino: fileIno}, md5sum: newMd5sum}
+      ]
+      const pendingChanges = []
+      should(analysis(events, pendingChanges)).deepEqual([
+        {
+          sideName,
+          type: 'DirMove',
+          path: 'dst',
+          ino: dirIno,
+          stats: {ino: dirIno},
+          old: srcDir,
+          wip: undefined // FIXME: Remove useless wip key
+        },
+        {
+          sideName,
+          type: 'FileUpdate',
+          path: 'dst/file',
+          ino: fileIno,
+          stats: {ino: fileIno},
+          md5sum: newMd5sum,
+          old: _.defaults({path: 'dst/file'}, srcFile),
+          needRefetch: true
+        }
+      ])
+      should(pendingChanges).deepEqual([])
+    })
+  })
+
   it('handles addDir', () => {
     const stats = {ino: 1}
     const events /*: LocalEvent[] */ = [
