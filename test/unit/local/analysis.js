@@ -57,9 +57,10 @@ describe('core/local/analysis', () => {
   it('handles unlink+add', () => {
     const old /*: Metadata */ = metadataBuilders.file().ino(1).build()
     const stats = {ino: 1}
+    const { md5sum } = old
     const events /*: LocalEvent[] */ = [
       {type: 'unlink', path: 'src', old},
-      {type: 'add', path: 'dst', stats, md5sum: 'yolo'}
+      {type: 'add', path: 'dst', stats, md5sum}
     ]
     const pendingChanges /*: LocalChange[] */ = []
 
@@ -67,7 +68,7 @@ describe('core/local/analysis', () => {
       sideName,
       type: 'FileMove',
       path: 'dst',
-      md5sum: 'yolo',
+      md5sum,
       ino: 1,
       stats,
       old
@@ -78,9 +79,10 @@ describe('core/local/analysis', () => {
   it('identifies a FileMove + an incomplete FileMove as an incomplete FileMove', () => {
     const old /*: Metadata */ = metadataBuilders.file().ino(1).build()
     const stats = {ino: 1}
+    const { md5sum } = old
     const events /*: LocalEvent[] */ = [
       {type: 'unlink', path: 'src', old},
-      {type: 'add', path: 'dst1', stats, md5sum: 'yolo'},
+      {type: 'add', path: 'dst1', stats, md5sum},
       // dropped: {type: 'unlink', path: 'dst1', old},
       {type: 'add', path: 'dst2', stats, wip: true}
     ]
@@ -102,11 +104,12 @@ describe('core/local/analysis', () => {
   it('identifies an incomplete FileMove + a complete FileMove as a complete FileMove', () => {
     const old /*: Metadata */ = metadataBuilders.file().ino(1).build()
     const stats = {ino: 1}
+    const { md5sum } = old
     const events /*: LocalEvent[] */ = [
       {type: 'unlink', path: 'src', old},
       {type: 'add', path: 'dst1', stats, wip: true},
       // dropped: {type: 'unlink', path: 'dst1', old},
-      {type: 'add', path: 'dst2', stats, md5sum: 'yolo'}
+      {type: 'add', path: 'dst2', stats, md5sum}
     ]
     const pendingChanges /*: LocalChange[] */ = []
 
@@ -115,7 +118,7 @@ describe('core/local/analysis', () => {
       type: 'FileMove',
       path: 'dst2',
       ino: 1,
-      md5sum: 'yolo',
+      md5sum,
       stats,
       old
     }])
@@ -541,16 +544,17 @@ describe('core/local/analysis', () => {
   it('handles chokidar mistakes', () => {
     const old /*: Metadata */ = metadataBuilders.file().ino(1).build()
     const stats = {ino: 1}
+    const { md5sum } = old
     const events /*: LocalEvent[] */ = [
       {type: 'unlinkDir', path: 'src', old},
-      {type: 'add', path: 'dst', stats, md5sum: 'yolo'}
+      {type: 'add', path: 'dst', stats, md5sum}
     ]
     const pendingChanges /*: LocalChange[] */ = []
     should(analysis(events, pendingChanges)).deepEqual([
       {
         sideName,
         type: 'FileMove',
-        md5sum: 'yolo',
+        md5sum,
         path: 'dst',
         ino: 1,
         stats,
